@@ -16,7 +16,8 @@
 }
 
 .builder-panel,
-.team-panel {
+.team-panel,
+.analysis-panel {
   margin-top: 24px;
   background: #ffffff;
   border: 1px solid #dcdfea;
@@ -44,8 +45,7 @@ label {
   font-weight: 600;
 }
 
-input,
-select {
+input {
   border: 1px solid #c4c8d6;
   border-radius: 10px;
   padding: 10px 12px;
@@ -53,8 +53,7 @@ select {
   background: #ffffff;
 }
 
-input:focus,
-select:focus {
+input:focus {
   outline: 2px solid #6b6ff8;
   outline-offset: 1px;
 }
@@ -65,6 +64,53 @@ select:focus {
   flex-wrap: wrap;
   gap: 12px;
   align-items: center;
+}
+
+.search-results {
+  margin-top: 14px;
+  max-height: 260px;
+  overflow-y: auto;
+  border: 1px solid #c7d9f8;
+  border-radius: 10px;
+  background: #f8fbff;
+}
+
+.search-result-item {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border: none;
+  border-bottom: 1px solid #dbe7fb;
+  background: transparent;
+  text-align: left;
+  padding: 8px 10px;
+  color: #0f294b;
+  font-size: 0.95rem;
+  cursor: pointer;
+}
+
+.search-result-item:last-child {
+  border-bottom: none;
+}
+
+.search-result-item:hover {
+  background: #e8f1ff;
+}
+
+.search-result-item:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.search-result-item img {
+  width: 32px;
+  height: 32px;
+  image-rendering: pixelated;
+}
+
+.search-result-name {
+  font-weight: 600;
 }
 
 button {
@@ -154,6 +200,62 @@ button:disabled {
   margin-top: 12px;
 }
 
+.analysis-grid {
+  margin-top: 12px;
+  display: grid;
+  gap: 16px;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+}
+
+.analysis-card {
+  margin-top: 14px;
+  border: 1px solid #dde1ee;
+  border-radius: 12px;
+  padding: 14px;
+  background: #fafbff;
+}
+
+.analysis-card h3 {
+  margin: 0 0 10px;
+}
+
+.analysis-list {
+  margin: 0;
+  padding-left: 18px;
+  display: grid;
+  gap: 4px;
+}
+
+.avg-stats-grid {
+  margin-top: 10px;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 6px 10px;
+}
+
+.avg-stats-grid p {
+  margin: 0;
+}
+
+.coverage-table-card {
+  margin-top: 16px;
+}
+
+.table-scroll {
+  overflow-x: auto;
+}
+
+.type-pill-inline {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  color: #ffffff;
+  font-size: 0.82rem;
+  font-weight: 700;
+  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.2);
+}
+
 .meta-block h4 {
   margin: 0 0 8px;
 }
@@ -172,12 +274,73 @@ button:disabled {
 }
 
 .pill-list li {
-  background: #e8ecff;
-  border: 1px solid #cfd7ff;
+  color: #ffffff;
+  border: 1px solid transparent;
   border-radius: 999px;
   padding: 4px 10px;
   font-size: 0.85rem;
   font-weight: 600;
+  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.2);
+}
+
+.pill-list li.type-normal { background: #a8a77a; border-color: #8f8d63; }
+.pill-list li.type-fire { background: #ee8130; border-color: #d36c1d; }
+.pill-list li.type-water { background: #6390f0; border-color: #4f79d7; }
+.pill-list li.type-electric { background: #f7d02c; border-color: #dfb400; color: #2a2a2a; text-shadow: none; }
+.pill-list li.type-grass { background: #7ac74c; border-color: #61ad34; }
+.pill-list li.type-ice { background: #96d9d6; border-color: #74c2bf; color: #244240; text-shadow: none; }
+.pill-list li.type-fighting { background: #c22e28; border-color: #a72521; }
+.pill-list li.type-poison { background: #a33ea1; border-color: #872f86; }
+.pill-list li.type-ground { background: #e2bf65; border-color: #cca852; color: #3e3214; text-shadow: none; }
+.pill-list li.type-flying { background: #a98ff3; border-color: #8d75d8; }
+.pill-list li.type-psychic { background: #f95587; border-color: #de3b6f; }
+.pill-list li.type-bug { background: #a6b91a; border-color: #8fa013; }
+.pill-list li.type-rock { background: #b6a136; border-color: #9f8b28; }
+.pill-list li.type-ghost { background: #735797; border-color: #5d447f; }
+.pill-list li.type-dragon { background: #6f35fc; border-color: #5b26df; }
+.pill-list li.type-dark { background: #705746; border-color: #5a4334; }
+.pill-list li.type-steel { background: #b7b7ce; border-color: #9d9db4; color: #2f3340; text-shadow: none; }
+.pill-list li.type-fairy { background: #d685ad; border-color: #bf6f97; }
+
+.type-pill-inline.type-normal { background: #a8a77a; border-color: #8f8d63; }
+.type-pill-inline.type-fire { background: #ee8130; border-color: #d36c1d; }
+.type-pill-inline.type-water { background: #6390f0; border-color: #4f79d7; }
+.type-pill-inline.type-electric { background: #f7d02c; border-color: #dfb400; color: #2a2a2a; text-shadow: none; }
+.type-pill-inline.type-grass { background: #7ac74c; border-color: #61ad34; }
+.type-pill-inline.type-ice { background: #96d9d6; border-color: #74c2bf; color: #244240; text-shadow: none; }
+.type-pill-inline.type-fighting { background: #c22e28; border-color: #a72521; }
+.type-pill-inline.type-poison { background: #a33ea1; border-color: #872f86; }
+.type-pill-inline.type-ground { background: #e2bf65; border-color: #cca852; color: #3e3214; text-shadow: none; }
+.type-pill-inline.type-flying { background: #a98ff3; border-color: #8d75d8; }
+.type-pill-inline.type-psychic { background: #f95587; border-color: #de3b6f; }
+.type-pill-inline.type-bug { background: #a6b91a; border-color: #8fa013; }
+.type-pill-inline.type-rock { background: #b6a136; border-color: #9f8b28; }
+.type-pill-inline.type-ghost { background: #735797; border-color: #5d447f; }
+.type-pill-inline.type-dragon { background: #6f35fc; border-color: #5b26df; }
+.type-pill-inline.type-dark { background: #705746; border-color: #5a4334; }
+.type-pill-inline.type-steel { background: #b7b7ce; border-color: #9d9db4; color: #2f3340; text-shadow: none; }
+.type-pill-inline.type-fairy { background: #d685ad; border-color: #bf6f97; }
+
+tr.stat-hp th,
+tr.stat-hp td { color: #4caf50; }
+
+tr.stat-attack th,
+tr.stat-attack td { color: #e65100; }
+
+tr.stat-defense th,
+tr.stat-defense td { color: #1e88e5; }
+
+tr.stat-special-attack th,
+tr.stat-special-attack td { color: #d81b60; }
+
+tr.stat-special-defense th,
+tr.stat-special-defense td { color: #00897b; }
+
+tr.stat-speed th,
+tr.stat-speed td { color: #8e24aa; }
+
+.stat-value {
+  font-weight: 700;
 }
 
 table {
@@ -196,4 +359,323 @@ td {
 th {
   width: 70%;
   font-weight: 600;
+}
+
+/* ── Inline type pill (used in analysis summary) ─────────────────────── */
+.type-pill-inline {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  border-radius: 999px;
+  padding: 4px 10px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #ffffff;
+  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.2);
+}
+
+.type-pill-inline.type-normal { background: #a8a77a; }
+.type-pill-inline.type-fire { background: #ee8130; }
+.type-pill-inline.type-water { background: #6390f0; }
+.type-pill-inline.type-electric { background: #f7d02c; color: #2a2a2a; text-shadow: none; }
+.type-pill-inline.type-grass { background: #7ac74c; }
+.type-pill-inline.type-ice { background: #96d9d6; color: #244240; text-shadow: none; }
+.type-pill-inline.type-fighting { background: #c22e28; }
+.type-pill-inline.type-poison { background: #a33ea1; }
+.type-pill-inline.type-ground { background: #e2bf65; color: #3e3214; text-shadow: none; }
+.type-pill-inline.type-flying { background: #a98ff3; }
+.type-pill-inline.type-psychic { background: #f95587; }
+.type-pill-inline.type-bug { background: #a6b91a; }
+.type-pill-inline.type-rock { background: #b6a136; }
+.type-pill-inline.type-ghost { background: #735797; }
+.type-pill-inline.type-dragon { background: #6f35fc; }
+.type-pill-inline.type-dark { background: #705746; }
+.type-pill-inline.type-steel { background: #b7b7ce; color: #2f3340; text-shadow: none; }
+.type-pill-inline.type-fairy { background: #d685ad; }
+
+.type-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.28);
+  border-radius: 999px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 4px;
+  font-size: 0.72rem;
+  font-weight: 800;
+}
+
+/* ── Type Summary card ────────────────────────────────────────────────── */
+.type-summary-sections {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin-top: 8px;
+}
+
+.type-summary-row {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.type-summary-label {
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.type-summary-label--weak { color: #b21c1c; }
+.type-summary-label--duplicate { color: #c47a00; }
+.type-summary-label--strong { color: #2a7d35; }
+
+.type-badge-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+
+.type-summary-none {
+  color: #8a8f9e;
+  font-size: 0.88rem;
+  font-style: italic;
+}
+
+/* ── Role & Stat Balance card ─────────────────────────────────────────── */
+.role-card-body {
+  display: flex;
+  gap: 24px;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  margin-top: 4px;
+}
+
+.role-details {
+  flex: 1;
+  min-width: 200px;
+}
+
+.role-details h4 {
+  margin: 14px 0 8px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #535662;
+}
+
+.role-details h4:first-child {
+  margin-top: 0;
+}
+
+.role-bars {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.role-bar-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.role-bar-label {
+  width: 88px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #474b58;
+  flex-shrink: 0;
+}
+
+.role-bar-track {
+  flex: 1;
+  height: 10px;
+  background: #eef0f8;
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.role-bar-fill {
+  height: 100%;
+  border-radius: 999px;
+  transition: width 0.4s ease;
+}
+
+.role-bar-count {
+  width: 18px;
+  text-align: right;
+  font-size: 0.88rem;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+/* ── Radar chart ──────────────────────────────────────────────────────── */
+.radar-container {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 260px;
+  max-width: 100%;
+}
+
+.radar-svg {
+  display: block;
+  width: 100%;
+  max-width: 260px;
+}
+
+.radar-label {
+  margin: 2px 0 0;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #535662;
+  text-align: center;
+}
+
+/* ── Analysis tables (coverage + defensive multipliers) ──────────────── */
+.analysis-table {
+  min-width: 640px;
+}
+
+.analysis-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: #f1f4ff;
+  color: #2e3655;
+  font-size: 0.78rem;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.analysis-table tbody tr:nth-child(even) {
+  background: #fbfcff;
+}
+
+.analysis-table tbody tr:hover {
+  background: #f3f7ff;
+}
+
+.analysis-table--coverage th,
+.analysis-table--coverage td {
+  text-align: center;
+}
+
+.analysis-table--coverage th:first-child,
+.analysis-table--coverage td:first-child {
+  text-align: left;
+}
+
+.coverage-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 28px;
+  height: 22px;
+  border-radius: 999px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  border: 1px solid transparent;
+}
+
+.coverage-count--none {
+  color: #7f8798;
+  background: #f1f3f8;
+  border-color: #d7dce8;
+}
+
+.coverage-count--weak {
+  color: #7f1111;
+  background: #ffe7e7;
+  border-color: #f4bcbc;
+}
+
+.coverage-count--resist {
+  color: #1f6f2c;
+  background: #e7f9ea;
+  border-color: #bde7c5;
+}
+
+.coverage-count--immune {
+  color: #17546f;
+  background: #e4f5ff;
+  border-color: #b8e1f7;
+}
+
+.coverage-count--attack {
+  color: #6a4700;
+  background: #fff3da;
+  border-color: #f0d392;
+}
+
+.analysis-table--defense {
+  min-width: 980px;
+}
+
+.analysis-table--defense th,
+.analysis-table--defense td {
+  text-align: center;
+  white-space: nowrap;
+}
+
+.analysis-table--defense th:first-child,
+.analysis-table--defense td:first-child {
+  position: sticky;
+  left: 0;
+  z-index: 2;
+  background: #f8faff;
+  text-align: left;
+}
+
+.analysis-table--defense thead th:first-child {
+  z-index: 3;
+}
+
+.multiplier-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 44px;
+  height: 24px;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  font-weight: 800;
+  border: 1px solid transparent;
+}
+
+.multiplier-4 {
+  color: #ffffff;
+  background: #d7263d;
+  border-color: #b41f32;
+}
+
+.multiplier-2 {
+  color: #6b3f00;
+  background: #ffd38a;
+  border-color: #e5b665;
+}
+
+.multiplier-1 {
+  color: #5f6676;
+  background: #f1f3f8;
+  border-color: #d8dce7;
+}
+
+.multiplier-05,
+.multiplier-025,
+.multiplier-0 {
+  color: #1c6f36;
+  background: #dcf8e4;
+  border-color: #b3e9c2;
+}
+
+.multiplier-0 {
+  color: #126c49;
+  background: #cef2e2;
+  border-color: #9edfc4;
 }

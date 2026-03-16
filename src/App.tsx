@@ -2,7 +2,13 @@ import { useEffect, useMemo, useState } from 'react'
 import './App.css'
 
 type PokemonListResponse = {
-  results: Array<{ name: string }>
+  results: Array<{ name: string; url: string }>
+}
+
+type PokemonListItem = {
+  id: number
+  name: string
+  sprite: string
 }
 
 type PokemonResponse = {
@@ -30,6 +36,37 @@ type TeamPokemon = {
   sprite: string | null
 }
 
+type TypeRelations = {
+  doubleDamageFrom: Set<string>
+  halfDamageFrom: Set<string>
+  noDamageFrom: Set<string>
+  doubleDamageTo: Set<string>
+}
+
+type CoverageRow = {
+  type: string
+  weakCount: number
+  resistCount: number
+  immuneCount: number
+  attackerCount: number
+}
+
+type RoleCoverage = {
+  physicalAttackers: number
+  specialAttackers: number
+  mixedAttackers: number
+  defensivePokemon: number
+  fastPokemon: number
+  mediumSpeedPokemon: number
+  slowPokemon: number
+  avgHp: number
+  avgAttack: number
+  avgDefense: number
+  avgSpAttack: number
+  avgSpDefense: number
+  avgSpeed: number
+}
+
 const MAX_TEAM_SIZE = 6
 const BASE_STAT_ORDER = [
   'hp',
@@ -40,6 +77,27 @@ const BASE_STAT_ORDER = [
   'speed',
 ]
 
+const POKEMON_TYPES = [
+  'normal',
+  'fire',
+  'water',
+  'electric',
+  'grass',
+  'ice',
+  'fighting',
+  'poison',
+  'ground',
+  'flying',
+  'psychic',
+  'bug',
+  'rock',
+  'ghost',
+  'dragon',
+  'dark',
+  'steel',
+  'fairy',
+]
+
 function toTitleCase(value: string): string {
   return value
     .split('-')
@@ -47,14 +105,215 @@ function toTitleCase(value: string): string {
     .join(' ')
 }
 
+function getPokemonIdFromUrl(url: string): number {
+  const segments = url.split('/').filter(Boolean)
+  const idSegment = segments[segments.length - 1]
+  return Number(idSegment)
+}
+
+function getPokemonSpriteById(id: number): string {
+  return `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${id}.png`
+}
+
+function getTypeClassName(type: string): string {
+  return `type-${type.toLowerCase()}`
+}
+
+function getStatClassName(stat: string): string {
+  return `stat-${stat.toLowerCase()}`
+}
+
+function getStatValue(pokemon: TeamPokemon, statName: string): number {
+  return pokemon.stats.find((stat) => stat.name === statName)?.value ?? 0
+}
+
+function formatMultiplier(multiplier: number): string {
+  if (multiplier === 0) {
+    return '0x'
+  }
+
+  const rounded = Math.round(multiplier * 100) / 100
+  return `${rounded}x`
+}
+
+function getMultiplierClass(multiplier: number): string {
+  if (multiplier === 0) {
+    return 'multiplier-0'
+  }
+
+  if (multiplier >= 4) {
+    return 'multiplier-4'
+  }
+
+  if (multiplier >= 2) {
+    return 'multiplier-2'
+  }
+
+  if (multiplier <= 0.25) {
+    return 'multiplier-025'
+  }
+
+  if (multiplier <= 0.5) {
+    return 'multiplier-05'
+  }
+
+  return 'multiplier-1'
+}
+
+function getCoverageCountClass(
+  kind: 'weak' | 'resist' | 'immune' | 'attack',
+  value: number,
+): string {
+  if (value === 0) {
+    return 'coverage-count coverage-count--none'
+  }
+
+  return `coverage-count coverage-count--${kind}`
+}
+
+  const RADAR_STAT_MAX = 180
+
+  const RADAR_STATS: Array<{ key: string; label: string; color: string }> = [
+    { key: 'hp', label: 'HP', color: '#4caf50' },
+    { key: 'attack', label: 'Atk', color: '#e65100' },
+    { key: 'defense', label: 'Def', color: '#1e88e5' },
+    { key: 'special-attack', label: 'SpA', color: '#d81b60' },
+    { key: 'special-defense', label: 'SpD', color: '#00897b' },
+    { key: 'speed', label: 'Spe', color: '#8e24aa' },
+  ]
+
+  function RadarChart({ values }: { values: Record<string, number> }) {
+    const size = 260
+    const cx = size / 2
+    const cy = size / 2
+    const r = 88
+    const levels = 4
+    const n = RADAR_STATS.length
+    const labelR = r + 24
+    const angle = (i: number) => (2 * Math.PI * i) / n - Math.PI / 2
+    const pt = (i: number, radius: number) => ({
+      x: cx + radius * Math.cos(angle(i)),
+      y: cy + radius * Math.sin(angle(i)),
+    })
+
+    const gridPolygons = Array.from({ length: levels }, (_, l) => {
+      const lr = (r * (l + 1)) / levels
+      return Array.from({ length: n }, (__, i) => pt(i, lr))
+        .map((p) => `${p.x.toFixed(2)},${p.y.toFixed(2)}`)
+        .join(' ')
+    })
+
+    const dataPts = RADAR_STATS.map((stat, i) => {
+      const norm = Math.min((values[stat.key] ?? 0) / RADAR_STAT_MAX, 1)
+      return pt(i, norm * r)
+    })
+    const dataPolygon = dataPts.map((p) => `${p.x.toFixed(2)},${p.y.toFixed(2)}`).join(' ')
+
+    return (
+      <svg
+        width="100%"
+        viewBox={`0 0 ${size} ${size}`}
+        className="radar-svg"
+        aria-hidden="true"
+      >
+        {gridPolygons.map((pts, l) => (
+          <polygon
+            key={l}
+            points={pts}
+            fill={l % 2 === 0 ? '#f5f6ff' : 'none'}
+            stroke="#dde1ee"
+            strokeWidth="1"
+          />
+        ))}
+
+        {Array.from({ length: n }, (_, i) => {
+          const outer = pt(i, r)
+          return (
+            <line
+              key={i}
+              x1={cx}
+              y1={cy}
+              x2={outer.x.toFixed(2)}
+              y2={outer.y.toFixed(2)}
+              stroke="#dde1ee"
+              strokeWidth="1"
+            />
+          )
+        })}
+
+        <polygon
+          points={dataPolygon}
+          fill="rgba(75,87,240,0.18)"
+          stroke="#4b57f0"
+          strokeWidth="2"
+          strokeLinejoin="round"
+        />
+
+        {dataPts.map((p, i) => (
+          <circle
+            key={i}
+            cx={p.x.toFixed(2)}
+            cy={p.y.toFixed(2)}
+            r="4"
+            fill="#4b57f0"
+            stroke="#ffffff"
+            strokeWidth="1.5"
+          />
+        ))}
+
+        {RADAR_STATS.map((stat, i) => {
+          const lp = pt(i, labelR)
+          return (
+            <text
+              key={i}
+              x={lp.x.toFixed(2)}
+              y={lp.y.toFixed(2)}
+              textAnchor="middle"
+              dominantBaseline="middle"
+              fontSize="12"
+              fontWeight="700"
+              fill={stat.color}
+            >
+              {stat.label}
+            </text>
+          )
+        })}
+      </svg>
+    )
+  }
+
+  function RoleBar({
+    label,
+    value,
+    max,
+    color,
+  }: {
+    label: string
+    value: number
+    max: number
+    color: string
+  }) {
+    const pct = max > 0 ? Math.round((value / max) * 100) : 0
+    return (
+      <div className="role-bar-row">
+        <span className="role-bar-label">{label}</span>
+        <div className="role-bar-track">
+          <div className="role-bar-fill" style={{ width: `${pct}%`, background: color }} />
+        </div>
+        <span className="role-bar-count" style={{ color }}>{value}</span>
+      </div>
+    )
+  }
+
 function App() {
-  const [allPokemonNames, setAllPokemonNames] = useState<string[]>([])
+  const [allPokemonList, setAllPokemonList] = useState<PokemonListItem[]>([])
   const [team, setTeam] = useState<TeamPokemon[]>([])
   const [searchTerm, setSearchTerm] = useState('')
-  const [selectedName, setSelectedName] = useState('')
   const [isLoadingList, setIsLoadingList] = useState(true)
   const [isAdding, setIsAdding] = useState(false)
+  const [isLoadingTypeData, setIsLoadingTypeData] = useState(true)
   const [errorMessage, setErrorMessage] = useState('')
+  const [typeRelationsMap, setTypeRelationsMap] = useState<Record<string, TypeRelations>>({})
 
   useEffect(() => {
     let isMounted = true
@@ -70,12 +329,20 @@ function App() {
         }
 
         const data = (await response.json()) as PokemonListResponse
-        const names = data.results
-          .map((item) => item.name)
-          .sort((a, b) => a.localeCompare(b))
+        const pokemonByIndex = data.results
+          .map((item) => {
+            const id = getPokemonIdFromUrl(item.url)
+            return {
+              id,
+              name: item.name,
+              sprite: getPokemonSpriteById(id),
+            }
+          })
+          .filter((item) => Number.isFinite(item.id))
+          .sort((a, b) => a.id - b.id)
 
         if (isMounted) {
-          setAllPokemonNames(names)
+          setAllPokemonList(pokemonByIndex)
         }
       } catch {
         if (isMounted) {
@@ -97,16 +364,267 @@ function App() {
     }
   }, [])
 
-  const filteredNames = useMemo(() => {
-    const normalized = searchTerm.trim().toLowerCase()
-    if (!normalized) {
-      return allPokemonNames.slice(0, 20)
+  useEffect(() => {
+    let isMounted = true
+
+    async function loadTypeRelations() {
+      setIsLoadingTypeData(true)
+
+      try {
+        const typeResponses = await Promise.all(
+          POKEMON_TYPES.map((type) => fetch(`https://pokeapi.co/api/v2/type/${type}`)),
+        )
+
+        if (typeResponses.some((response) => !response.ok)) {
+          throw new Error('Unable to load type data.')
+        }
+
+        const typePayloads = await Promise.all(typeResponses.map((response) => response.json()))
+
+        const nextMap: Record<string, TypeRelations> = {}
+
+        for (let index = 0; index < POKEMON_TYPES.length; index += 1) {
+          const typeName = POKEMON_TYPES[index]
+          const payload = typePayloads[index] as {
+            damage_relations: {
+              double_damage_from: Array<{ name: string }>
+              half_damage_from: Array<{ name: string }>
+              no_damage_from: Array<{ name: string }>
+              double_damage_to: Array<{ name: string }>
+            }
+          }
+
+          nextMap[typeName] = {
+            doubleDamageFrom: new Set(
+              payload.damage_relations.double_damage_from.map((entry) => entry.name),
+            ),
+            halfDamageFrom: new Set(
+              payload.damage_relations.half_damage_from.map((entry) => entry.name),
+            ),
+            noDamageFrom: new Set(
+              payload.damage_relations.no_damage_from.map((entry) => entry.name),
+            ),
+            doubleDamageTo: new Set(
+              payload.damage_relations.double_damage_to.map((entry) => entry.name),
+            ),
+          }
+        }
+
+        if (isMounted) {
+          setTypeRelationsMap(nextMap)
+        }
+      } catch {
+        if (isMounted) {
+          setErrorMessage(
+            'Some analysis data could not be loaded. Team builder still works, but type analysis may be limited.',
+          )
+        }
+      } finally {
+        if (isMounted) {
+          setIsLoadingTypeData(false)
+        }
+      }
     }
 
-    return allPokemonNames
-      .filter((name) => name.includes(normalized))
+    loadTypeRelations()
+
+    return () => {
+      isMounted = false
+    }
+  }, [])
+
+  const filteredPokemon = useMemo(() => {
+    const normalized = searchTerm.trim().toLowerCase()
+    if (!normalized) {
+      return allPokemonList.slice(0, 20)
+    }
+
+    return allPokemonList
+      .filter((pokemon) => pokemon.name.includes(normalized))
       .slice(0, 20)
-  }, [allPokemonNames, searchTerm])
+  }, [allPokemonList, searchTerm])
+
+  const typeCoverageRows = useMemo<CoverageRow[]>(() => {
+    if (team.length === 0) {
+      return []
+    }
+
+    return POKEMON_TYPES.map((attackType) => {
+      let weakCount = 0
+      let resistCount = 0
+      let immuneCount = 0
+      let attackerCount = 0
+
+      for (const pokemon of team) {
+        let multiplier = 1
+
+        for (const defendingType of pokemon.types) {
+          const relations = typeRelationsMap[defendingType]
+          if (!relations) {
+            continue
+          }
+
+          if (relations.noDamageFrom.has(attackType)) {
+            multiplier *= 0
+          } else if (relations.doubleDamageFrom.has(attackType)) {
+            multiplier *= 2
+          } else if (relations.halfDamageFrom.has(attackType)) {
+            multiplier *= 0.5
+          }
+        }
+
+        if (multiplier === 0) {
+          immuneCount += 1
+        } else if (multiplier > 1) {
+          weakCount += 1
+        } else if (multiplier < 1) {
+          resistCount += 1
+        }
+
+        if (
+          pokemon.types.some((attackingType) =>
+            typeRelationsMap[attackingType]?.doubleDamageTo.has(attackType),
+          )
+        ) {
+          attackerCount += 1
+        }
+      }
+
+      return {
+        type: attackType,
+        weakCount,
+        resistCount,
+        immuneCount,
+        attackerCount,
+      }
+    })
+  }, [team, typeRelationsMap])
+
+  const topWeakTypes = useMemo(
+    () =>
+      typeCoverageRows
+        .filter((row) => row.weakCount > 0)
+        .sort((a, b) => b.weakCount - a.weakCount)
+        .slice(0, 3),
+    [typeCoverageRows],
+  )
+
+  const duplicateWeaknesses = useMemo(
+    () => typeCoverageRows.filter((row) => row.weakCount >= 2).sort((a, b) => b.weakCount - a.weakCount),
+    [typeCoverageRows],
+  )
+
+  const strongestCoverageTypes = useMemo(
+    () =>
+      typeCoverageRows
+        .filter((row) => row.attackerCount > 0)
+        .sort((a, b) => b.attackerCount - a.attackerCount)
+        .slice(0, 3),
+    [typeCoverageRows],
+  )
+
+  const defensiveMultipliers = useMemo(() => {
+    const byPokemon: Record<number, Record<string, number>> = {}
+
+    for (const pokemon of team) {
+      byPokemon[pokemon.id] = {}
+
+      for (const attackType of POKEMON_TYPES) {
+        let multiplier = 1
+
+        for (const defendingType of pokemon.types) {
+          const relations = typeRelationsMap[defendingType]
+          if (!relations) {
+            continue
+          }
+
+          if (relations.noDamageFrom.has(attackType)) {
+            multiplier *= 0
+          } else if (relations.doubleDamageFrom.has(attackType)) {
+            multiplier *= 2
+          } else if (relations.halfDamageFrom.has(attackType)) {
+            multiplier *= 0.5
+          }
+        }
+
+        byPokemon[pokemon.id][attackType] = multiplier
+      }
+    }
+
+    return byPokemon
+  }, [team, typeRelationsMap])
+
+  const roleCoverage = useMemo<RoleCoverage | null>(() => {
+    if (team.length === 0) {
+      return null
+    }
+
+    let physicalAttackers = 0
+    let specialAttackers = 0
+    let mixedAttackers = 0
+    let defensivePokemon = 0
+    let fastPokemon = 0
+    let mediumSpeedPokemon = 0
+    let slowPokemon = 0
+    let sumHp = 0
+    let sumAttack = 0
+    let sumDefense = 0
+    let sumSpAttack = 0
+    let sumSpDefense = 0
+    let sumSpeed = 0
+
+    for (const pokemon of team) {
+      const hp = getStatValue(pokemon, 'hp')
+      const attack = getStatValue(pokemon, 'attack')
+      const defense = getStatValue(pokemon, 'defense')
+      const spAttack = getStatValue(pokemon, 'special-attack')
+      const spDefense = getStatValue(pokemon, 'special-defense')
+      const speed = getStatValue(pokemon, 'speed')
+
+      sumHp += hp
+      sumAttack += attack
+      sumDefense += defense
+      sumSpAttack += spAttack
+      sumSpDefense += spDefense
+      sumSpeed += speed
+
+      if (attack >= spAttack + 20) {
+        physicalAttackers += 1
+      } else if (spAttack >= attack + 20) {
+        specialAttackers += 1
+      } else {
+        mixedAttackers += 1
+      }
+
+      if ((defense + spDefense) / 2 >= 90 || (hp >= 95 && defense >= 80 && spDefense >= 80)) {
+        defensivePokemon += 1
+      }
+
+      if (speed >= 100) {
+        fastPokemon += 1
+      } else if (speed <= 60) {
+        slowPokemon += 1
+      } else {
+        mediumSpeedPokemon += 1
+      }
+    }
+
+    return {
+      physicalAttackers,
+      specialAttackers,
+      mixedAttackers,
+      defensivePokemon,
+      fastPokemon,
+      mediumSpeedPokemon,
+      slowPokemon,
+      avgHp: Math.round(sumHp / team.length),
+      avgAttack: Math.round(sumAttack / team.length),
+      avgDefense: Math.round(sumDefense / team.length),
+      avgSpAttack: Math.round(sumSpAttack / team.length),
+      avgSpDefense: Math.round(sumSpDefense / team.length),
+      avgSpeed: Math.round(sumSpeed / team.length),
+    }
+  }, [team])
 
   async function addPokemon(rawName: string) {
     const normalizedName = rawName.trim().toLowerCase()
@@ -157,7 +675,6 @@ function App() {
 
       setTeam((currentTeam) => [...currentTeam, teamPokemon])
       setSearchTerm('')
-      setSelectedName('')
     } catch {
       setErrorMessage(`Could not find Pokemon: "${rawName}".`)
     } finally {
@@ -180,7 +697,7 @@ function App() {
       <section className="builder-panel" aria-labelledby="builder-title">
         <div>
           <h2 id="builder-title">Add Pokemon</h2>
-          <p className="helper-text">Search by name or pick from the suggestion list.</p>
+          <p className="helper-text">Search by name, click a result, then add it to your team.</p>
         </div>
 
         <div className="controls-grid">
@@ -188,41 +705,37 @@ function App() {
             Search Pokemon
             <input
               type="text"
-              list="pokemon-suggestions"
               value={searchTerm}
               onChange={(event) => setSearchTerm(event.target.value)}
               placeholder="e.g. pikachu"
               disabled={isLoadingList || isAdding}
             />
           </label>
-
-          <label>
-            Or select one
-            <select
-              value={selectedName}
-              onChange={(event) => setSelectedName(event.target.value)}
-              disabled={isLoadingList || isAdding}
-            >
-              <option value="">Choose a Pokemon</option>
-              {filteredNames.map((name) => (
-                <option key={name} value={name}>
-                  {toTitleCase(name)}
-                </option>
-              ))}
-            </select>
-          </label>
         </div>
 
-        <datalist id="pokemon-suggestions">
-          {filteredNames.map((name) => (
-            <option key={name} value={name} />
+        <div className="search-results" aria-live="polite">
+          {filteredPokemon.map((pokemon) => (
+            <button
+              key={pokemon.name}
+              type="button"
+              className="search-result-item"
+              onClick={() => {
+                setSearchTerm(pokemon.name)
+              }}
+              disabled={isAdding || team.length >= MAX_TEAM_SIZE}
+            >
+              <img src={pokemon.sprite} alt="" aria-hidden="true" />
+              <span className="search-result-name">
+                #{pokemon.id.toString().padStart(4, '0')} {toTitleCase(pokemon.name)}
+              </span>
+            </button>
           ))}
-        </datalist>
+        </div>
 
         <div className="actions-row">
           <button
             type="button"
-            onClick={() => addPokemon(searchTerm || selectedName)}
+            onClick={() => addPokemon(searchTerm)}
             disabled={isLoadingList || isAdding || team.length >= MAX_TEAM_SIZE}
           >
             {isAdding ? 'Adding...' : 'Add to Team'}
@@ -280,7 +793,9 @@ function App() {
                   <h4>Types</h4>
                   <ul className="pill-list">
                     {pokemon.types.map((type) => (
-                      <li key={type}>{toTitleCase(type)}</li>
+                      <li key={type} className={getTypeClassName(type)}>
+                        {toTitleCase(type)}
+                      </li>
                     ))}
                   </ul>
                 </div>
@@ -299,9 +814,9 @@ function App() {
                   <table>
                     <tbody>
                       {pokemon.stats.map((stat) => (
-                        <tr key={stat.name}>
+                        <tr key={stat.name} className={getStatClassName(stat.name)}>
                           <th>{toTitleCase(stat.name)}</th>
-                          <td>{stat.value}</td>
+                          <td className="stat-value">{stat.value}</td>
                         </tr>
                       ))}
                     </tbody>
@@ -310,6 +825,248 @@ function App() {
               </article>
             ))}
           </div>
+        )}
+      </section>
+
+      <section className="analysis-panel" aria-labelledby="analysis-title">
+        <h2 id="analysis-title">Team Analysis</h2>
+
+        {team.length === 0 ? (
+          <p className="empty-state">Add Pokemon to see type and role coverage analysis.</p>
+        ) : (
+          <>
+            <div className="analysis-grid">
+              <article className="analysis-card">
+                <h3>Type Summary</h3>
+                {isLoadingTypeData ? (
+                  <p className="status-message">Loading type matchup data…</p>
+                ) : (
+                  <div className="type-summary-sections">
+                    <div className="type-summary-row">
+                      <span className="type-summary-label type-summary-label--weak">
+                        Biggest Weaknesses
+                      </span>
+                      <div className="type-badge-row">
+                        {topWeakTypes.length > 0 ? (
+                          topWeakTypes.map((row) => (
+                            <span
+                              key={row.type}
+                              className={`type-pill-inline ${getTypeClassName(row.type)}`}
+                            >
+                              {toTitleCase(row.type)}
+                              <span className="type-count">{row.weakCount}</span>
+                            </span>
+                          ))
+                        ) : (
+                          <span className="type-summary-none">None detected</span>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="type-summary-row">
+                      <span className="type-summary-label type-summary-label--duplicate">
+                        Duplicate Weaknesses
+                      </span>
+                      <div className="type-badge-row">
+                        {duplicateWeaknesses.length > 0 ? (
+                          duplicateWeaknesses.map((row) => (
+                            <span
+                              key={row.type}
+                              className={`type-pill-inline ${getTypeClassName(row.type)}`}
+                            >
+                              {toTitleCase(row.type)}
+                              <span className="type-count">{row.weakCount}</span>
+                            </span>
+                          ))
+                        ) : (
+                          <span className="type-summary-none">None</span>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="type-summary-row">
+                      <span className="type-summary-label type-summary-label--strong">
+                        Strong Coverage
+                      </span>
+                      <div className="type-badge-row">
+                        {strongestCoverageTypes.length > 0 ? (
+                          strongestCoverageTypes.map((row) => (
+                            <span
+                              key={row.type}
+                              className={`type-pill-inline ${getTypeClassName(row.type)}`}
+                            >
+                              {toTitleCase(row.type)}
+                              <span className="type-count">{row.attackerCount}</span>
+                            </span>
+                          ))
+                        ) : (
+                          <span className="type-summary-none">Limited</span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </article>
+
+              <article className="analysis-card">
+                <h3>Role & Stat Balance</h3>
+                {roleCoverage && (
+                  <div className="role-card-body">
+                    <div className="role-details">
+                      <h4>Roles</h4>
+                      <div className="role-bars">
+                        <RoleBar
+                          label="Physical"
+                          value={roleCoverage.physicalAttackers}
+                          max={team.length}
+                          color="#e65100"
+                        />
+                        <RoleBar
+                          label="Special"
+                          value={roleCoverage.specialAttackers}
+                          max={team.length}
+                          color="#d81b60"
+                        />
+                        <RoleBar
+                          label="Mixed"
+                          value={roleCoverage.mixedAttackers}
+                          max={team.length}
+                          color="#8e24aa"
+                        />
+                        <RoleBar
+                          label="Defensive"
+                          value={roleCoverage.defensivePokemon}
+                          max={team.length}
+                          color="#1e88e5"
+                        />
+                      </div>
+
+                      <h4>Speed Tiers</h4>
+                      <div className="role-bars">
+                        <RoleBar
+                          label="Fast (≥100)"
+                          value={roleCoverage.fastPokemon}
+                          max={team.length}
+                          color="#8e24aa"
+                        />
+                        <RoleBar
+                          label="Medium"
+                          value={roleCoverage.mediumSpeedPokemon}
+                          max={team.length}
+                          color="#f7a900"
+                        />
+                        <RoleBar
+                          label="Slow (≤60)"
+                          value={roleCoverage.slowPokemon}
+                          max={team.length}
+                          color="#a8a77a"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="radar-container">
+                      <RadarChart
+                        values={{
+                          hp: roleCoverage.avgHp,
+                          attack: roleCoverage.avgAttack,
+                          defense: roleCoverage.avgDefense,
+                          'special-attack': roleCoverage.avgSpAttack,
+                          'special-defense': roleCoverage.avgSpDefense,
+                          speed: roleCoverage.avgSpeed,
+                        }}
+                      />
+                      <p className="radar-label">Team Average Stats</p>
+                    </div>
+                  </div>
+                )}
+              </article>
+            </div>
+
+            {!isLoadingTypeData && typeCoverageRows.length > 0 && (
+              <article className="analysis-card coverage-table-card">
+                <h3>Type Coverage Table</h3>
+                <div className="table-scroll">
+                  <table className="analysis-table analysis-table--coverage">
+                    <thead>
+                      <tr>
+                        <th>Type</th>
+                        <th>Weak</th>
+                        <th>Resist</th>
+                        <th>Immune</th>
+                        <th>Strong Attackers</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {typeCoverageRows.map((row) => (
+                        <tr key={row.type}>
+                          <th>
+                            <span className={`type-pill-inline ${getTypeClassName(row.type)}`}>
+                              {toTitleCase(row.type)}
+                            </span>
+                          </th>
+                          <td>
+                            <span className={getCoverageCountClass('weak', row.weakCount)}>
+                              {row.weakCount}
+                            </span>
+                          </td>
+                          <td>
+                            <span className={getCoverageCountClass('resist', row.resistCount)}>
+                              {row.resistCount}
+                            </span>
+                          </td>
+                          <td>
+                            <span className={getCoverageCountClass('immune', row.immuneCount)}>
+                              {row.immuneCount}
+                            </span>
+                          </td>
+                          <td>
+                            <span className={getCoverageCountClass('attack', row.attackerCount)}>
+                              {row.attackerCount}
+                            </span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </article>
+            )}
+
+            {!isLoadingTypeData && Object.keys(defensiveMultipliers).length > 0 && (
+              <article className="analysis-card coverage-table-card">
+                <h3>Per-Pokemon Defensive Multipliers</h3>
+                <div className="table-scroll">
+                  <table className="analysis-table analysis-table--defense">
+                    <thead>
+                      <tr>
+                        <th>Pokemon</th>
+                        {POKEMON_TYPES.map((type) => (
+                          <th key={type}>{toTitleCase(type)}</th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {team.map((pokemon) => (
+                        <tr key={pokemon.id}>
+                          <th>{toTitleCase(pokemon.name)}</th>
+                          {POKEMON_TYPES.map((type) => {
+                            const multiplier = defensiveMultipliers[pokemon.id][type] ?? 1
+                            return (
+                              <td key={`${pokemon.id}-${type}`}>
+                                <span className={`multiplier-badge ${getMultiplierClass(multiplier)}`}>
+                                  {formatMultiplier(multiplier)}
+                                </span>
+                              </td>
+                            )
+                          })}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </article>
+            )}
+          </>
         )}
       </section>
     </main>
