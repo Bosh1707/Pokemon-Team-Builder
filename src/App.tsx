@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { Fragment, useEffect, useMemo, useState } from 'react'
 import './App.css'
 
 type PokemonListResponse = {
@@ -49,6 +49,10 @@ type CoverageRow = {
   resistCount: number
   immuneCount: number
   attackerCount: number
+  weakNames: string[]
+  resistNames: string[]
+  immuneNames: string[]
+  attackerNames: string[]
 }
 
 type RoleCoverage = {
@@ -273,7 +277,9 @@ function getCoverageCountClass(
               fontSize="12"
               fontWeight="700"
               fill={stat.color}
+              style={{ cursor: 'help' }}
             >
+              <title>{stat.label}: {values[stat.key] ?? 0}</title>
               {stat.label}
             </text>
           )
@@ -314,6 +320,7 @@ function App() {
   const [isLoadingTypeData, setIsLoadingTypeData] = useState(true)
   const [errorMessage, setErrorMessage] = useState('')
   const [typeRelationsMap, setTypeRelationsMap] = useState<Record<string, TypeRelations>>({})
+  const [selectedCoverageType, setSelectedCoverageType] = useState<string | null>(null)
 
   useEffect(() => {
     let isMounted = true
@@ -454,6 +461,10 @@ function App() {
       let resistCount = 0
       let immuneCount = 0
       let attackerCount = 0
+      const weakNames: string[] = []
+      const resistNames: string[] = []
+      const immuneNames: string[] = []
+      const attackerNames: string[] = []
 
       for (const pokemon of team) {
         let multiplier = 1
@@ -475,10 +486,13 @@ function App() {
 
         if (multiplier === 0) {
           immuneCount += 1
+          immuneNames.push(toTitleCase(pokemon.name))
         } else if (multiplier > 1) {
           weakCount += 1
+          weakNames.push(toTitleCase(pokemon.name))
         } else if (multiplier < 1) {
           resistCount += 1
+          resistNames.push(toTitleCase(pokemon.name))
         }
 
         if (
@@ -487,6 +501,7 @@ function App() {
           )
         ) {
           attackerCount += 1
+          attackerNames.push(toTitleCase(pokemon.name))
         }
       }
 
@@ -496,6 +511,10 @@ function App() {
         resistCount,
         immuneCount,
         attackerCount,
+        weakNames,
+        resistNames,
+        immuneNames,
+        attackerNames,
       }
     })
   }, [team, typeRelationsMap])
@@ -811,14 +830,29 @@ function App() {
 
                 <div className="meta-block">
                   <h4>Base Stats</h4>
-                  <table>
+                  <table className="stat-table">
                     <tbody>
                       {pokemon.stats.map((stat) => (
                         <tr key={stat.name} className={getStatClassName(stat.name)}>
                           <th>{toTitleCase(stat.name)}</th>
                           <td className="stat-value">{stat.value}</td>
+                          <td className="stat-bar-cell">
+                            <div className="stat-bar">
+                              <div
+                                className="stat-bar-fill"
+                                style={{ width: `${Math.round((stat.value / 255) * 100)}%` }}
+                              />
+                            </div>
+                          </td>
                         </tr>
                       ))}
+                      <tr className="stat-total">
+                        <th>Total</th>
+                        <td className="stat-value">
+                          {pokemon.stats.reduce((sum, s) => sum + s.value, 0)}
+                        </td>
+                        <td className="stat-bar-cell" />
+                      </tr>
                     </tbody>
                   </table>
                 </div>
@@ -998,33 +1032,116 @@ function App() {
                     </thead>
                     <tbody>
                       {typeCoverageRows.map((row) => (
-                        <tr key={row.type}>
-                          <th>
-                            <span className={`type-pill-inline ${getTypeClassName(row.type)}`}>
-                              {toTitleCase(row.type)}
-                            </span>
-                          </th>
-                          <td>
-                            <span className={getCoverageCountClass('weak', row.weakCount)}>
-                              {row.weakCount}
-                            </span>
-                          </td>
-                          <td>
-                            <span className={getCoverageCountClass('resist', row.resistCount)}>
-                              {row.resistCount}
-                            </span>
-                          </td>
-                          <td>
-                            <span className={getCoverageCountClass('immune', row.immuneCount)}>
-                              {row.immuneCount}
-                            </span>
-                          </td>
-                          <td>
-                            <span className={getCoverageCountClass('attack', row.attackerCount)}>
-                              {row.attackerCount}
-                            </span>
-                          </td>
-                        </tr>
+                        <Fragment key={row.type}>
+                          <tr>
+                            <th>
+                              <button
+                                type="button"
+                                className={`coverage-type-button ${
+                                  selectedCoverageType === row.type ? 'is-active' : ''
+                                }`}
+                                onClick={() =>
+                                  setSelectedCoverageType((current) =>
+                                    current === row.type ? null : row.type,
+                                  )
+                                }
+                                aria-pressed={selectedCoverageType === row.type}
+                                title="Click to view type breakdown"
+                              >
+                                <span className={`type-pill-inline ${getTypeClassName(row.type)}`}>
+                                  {toTitleCase(row.type)}
+                                </span>
+                              </button>
+                            </th>
+                            <td>
+                              <span
+                                className={getCoverageCountClass('weak', row.weakCount)}
+                                title={row.weakNames.length > 0 ? row.weakNames.join(', ') : undefined}
+                                style={row.weakNames.length > 0 ? { cursor: 'help' } : undefined}
+                              >
+                                {row.weakCount}
+                              </span>
+                            </td>
+                            <td>
+                              <span
+                                className={getCoverageCountClass('resist', row.resistCount)}
+                                title={
+                                  row.resistNames.length > 0
+                                    ? row.resistNames.join(', ')
+                                    : undefined
+                                }
+                                style={row.resistNames.length > 0 ? { cursor: 'help' } : undefined}
+                              >
+                                {row.resistCount}
+                              </span>
+                            </td>
+                            <td>
+                              <span
+                                className={getCoverageCountClass('immune', row.immuneCount)}
+                                title={
+                                  row.immuneNames.length > 0
+                                    ? row.immuneNames.join(', ')
+                                    : undefined
+                                }
+                                style={row.immuneNames.length > 0 ? { cursor: 'help' } : undefined}
+                              >
+                                {row.immuneCount}
+                              </span>
+                            </td>
+                            <td>
+                              <span
+                                className={getCoverageCountClass('attack', row.attackerCount)}
+                                title={
+                                  row.attackerNames.length > 0
+                                    ? row.attackerNames.join(', ')
+                                    : undefined
+                                }
+                                style={row.attackerNames.length > 0 ? { cursor: 'help' } : undefined}
+                              >
+                                {row.attackerCount}
+                              </span>
+                            </td>
+                          </tr>
+
+                          {selectedCoverageType === row.type && (
+                            <tr className="coverage-breakdown-row">
+                              <td colSpan={5}>
+                                <div className="coverage-breakdown coverage-breakdown--inline" aria-live="polite">
+                                  <p className="coverage-breakdown-title">
+                                    Breakdown for{' '}
+                                    <span className={`type-pill-inline ${getTypeClassName(row.type)}`}>
+                                      {toTitleCase(row.type)}
+                                    </span>
+                                  </p>
+                                  <ul className="coverage-breakdown-list">
+                                    <li>
+                                      <strong>Weak:</strong>{' '}
+                                      {row.weakNames.length > 0 ? row.weakNames.join(', ') : 'None'}
+                                    </li>
+                                    <li>
+                                      <strong>Resist:</strong>{' '}
+                                      {row.resistNames.length > 0
+                                        ? row.resistNames.join(', ')
+                                        : 'None'}
+                                    </li>
+                                    <li>
+                                      <strong>Immune:</strong>{' '}
+                                      {row.immuneNames.length > 0
+                                        ? row.immuneNames.join(', ')
+                                        : 'None'}
+                                    </li>
+                                    <li>
+                                      <strong>Strong Attackers:</strong>{' '}
+                                      {row.attackerNames.length > 0
+                                        ? row.attackerNames.join(', ')
+                                        : 'None'}
+                                    </li>
+                                  </ul>
+                                </div>
+                              </td>
+                            </tr>
+                          )}
+                        </Fragment>
                       ))}
                     </tbody>
                   </table>
@@ -1041,7 +1158,13 @@ function App() {
                       <tr>
                         <th>Pokemon</th>
                         {POKEMON_TYPES.map((type) => (
-                          <th key={type}>{toTitleCase(type)}</th>
+                          <th key={type}>
+                            <span
+                              className={`type-pill-inline type-pill-inline--compact ${getTypeClassName(type)}`}
+                            >
+                              {toTitleCase(type)}
+                            </span>
+                          </th>
                         ))}
                       </tr>
                     </thead>

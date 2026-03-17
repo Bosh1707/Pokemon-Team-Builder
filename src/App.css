@@ -7,12 +7,43 @@
 
 .page-header h1 {
   margin: 0 0 8px;
-  font-size: 2rem;
+  font-size: 2.6rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  background: linear-gradient(100deg, #4b57f0 0%, #8b5cf6 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
 .page-header p {
   margin: 0;
   color: #535662;
+}
+
+.builder-panel h2,
+.team-panel h2,
+.analysis-panel h2 {
+  margin: 0 0 4px;
+  font-size: 1.3rem;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  color: #1e1f24;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.builder-panel h2::before,
+.team-panel h2::before,
+.analysis-panel h2::before {
+  content: '';
+  display: inline-block;
+  width: 4px;
+  height: 1.1em;
+  border-radius: 2px;
+  background: linear-gradient(160deg, #4b57f0 0%, #8b5cf6 100%);
+  flex-shrink: 0;
 }
 
 .builder-panel,
@@ -153,9 +184,17 @@ button:disabled {
 
 .pokemon-card {
   border: 1px solid #dde1ee;
-  border-radius: 12px;
-  padding: 14px;
-  background: #fafbff;
+  border-radius: 14px;
+  padding: 0;
+  background: #ffffff;
+  overflow: hidden;
+  box-shadow: inset 0 3px 0 0 #6366f1, 0 2px 10px rgba(75, 87, 240, 0.08);
+  transition: box-shadow 0.18s, transform 0.18s;
+}
+
+.pokemon-card:hover {
+  box-shadow: inset 0 3px 0 0 #6366f1, 0 6px 22px rgba(75, 87, 240, 0.15);
+  transform: translateY(-2px);
 }
 
 .pokemon-head {
@@ -163,29 +202,51 @@ button:disabled {
   justify-content: space-between;
   gap: 12px;
   align-items: flex-start;
+  padding: 12px 14px 10px;
+  background: linear-gradient(135deg, #f5f6fd 0%, #eef0fb 100%);
+  border-bottom: 1px solid #e4e7f5;
 }
 
 .pokemon-head h3 {
   margin: 0;
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: #1e1f24;
 }
 
 .pokemon-head p {
-  margin: 4px 0 0;
-  color: #60657a;
+  margin: 5px 0 0;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #6366f1;
+  background: #ede9fe;
+  display: inline-block;
+  padding: 1px 8px;
+  border-radius: 999px;
 }
 
 .remove-button {
+  background: transparent;
+  border: 1.5px solid #d94747;
+  color: #d94747;
+  padding: 4px 10px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  transition: background 0.15s, color 0.15s;
+}
+
+.remove-button:hover {
   background: #d94747;
-  padding: 8px 10px;
-  font-size: 0.85rem;
+  color: #ffffff;
 }
 
 .pokemon-art {
-  width: 120px;
-  height: 120px;
+  width: 134px;
+  height: 134px;
   object-fit: contain;
   display: block;
-  margin: 10px auto;
+  margin: 14px auto 8px;
+  filter: drop-shadow(0 4px 8px rgba(75, 87, 240, 0.18));
 }
 
 .placeholder-art {
@@ -197,7 +258,12 @@ button:disabled {
 }
 
 .meta-block {
-  margin-top: 12px;
+  padding: 10px 14px 0;
+  border-top: 1px solid #eeeff8;
+}
+
+.meta-block:last-child {
+  padding-bottom: 14px;
 }
 
 .analysis-grid {
@@ -216,7 +282,12 @@ button:disabled {
 }
 
 .analysis-card h3 {
-  margin: 0 0 10px;
+  margin: 0 0 12px;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #2e3655;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #e8eaf6;
 }
 
 .analysis-list {
@@ -257,7 +328,12 @@ button:disabled {
 }
 
 .meta-block h4 {
-  margin: 0 0 8px;
+  margin: 0 0 7px;
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: #8b8fad;
 }
 
 .meta-block ul {
@@ -341,6 +417,47 @@ tr.stat-speed td { color: #8e24aa; }
 
 .stat-value {
   font-weight: 700;
+}
+
+/* ── Pokémon card base stats table ───────────────────────────────────── */
+.stat-table th {
+  width: 36%;
+}
+
+.stat-table .stat-value {
+  width: 32px;
+  text-align: right;
+  padding-right: 8px;
+  font-variant-numeric: tabular-nums;
+}
+
+.stat-bar-cell {
+  padding-left: 0;
+  padding-right: 8px;
+}
+
+.stat-bar {
+  height: 10px;
+  background: #eef0f8;
+  border-radius: 999px;
+  overflow: hidden;
+  min-width: 60px;
+}
+
+.stat-bar-fill {
+  height: 100%;
+  border-radius: 999px;
+  background: currentColor;
+  transition: width 0.4s ease;
+}
+
+.stat-total th,
+.stat-total td {
+  font-weight: 700;
+  color: #2e3655;
+  border-top: 2px solid #d0d4e8;
+  border-bottom: none;
+  padding-top: 7px;
 }
 
 table {
@@ -564,21 +681,85 @@ th {
 .analysis-table--coverage th,
 .analysis-table--coverage td {
   text-align: center;
+  padding: 4px 6px;
 }
 
 .analysis-table--coverage th:first-child,
 .analysis-table--coverage td:first-child {
   text-align: left;
+  padding-left: 8px;
+}
+
+.coverage-type-button {
+  border: none;
+  padding: 0;
+  background: transparent;
+  cursor: pointer;
+}
+
+.coverage-type-button .type-pill-inline {
+  transition: transform 0.15s, box-shadow 0.15s;
+}
+
+.coverage-type-button:hover .type-pill-inline,
+.coverage-type-button.is-active .type-pill-inline {
+  transform: translateY(-1px);
+  box-shadow: 0 0 0 2px rgba(75, 87, 240, 0.18);
+}
+
+.coverage-breakdown {
+  margin-top: 10px;
+  border: 1px solid #e3e7f5;
+  background: #f8faff;
+  border-radius: 10px;
+  padding: 10px 12px;
+}
+
+.coverage-breakdown-title {
+  margin: 0 0 8px;
+  font-size: 0.86rem;
+  font-weight: 700;
+  color: #2e3655;
+}
+
+.coverage-breakdown-list {
+  margin: 0;
+  padding-left: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  font-size: 0.84rem;
+  color: #3f4559;
+}
+
+.coverage-breakdown-hint {
+  margin: 0;
+  font-size: 0.83rem;
+  color: #60657a;
+}
+
+.coverage-breakdown-row td {
+  padding: 6px 8px 8px;
+  background: #ffffff;
+}
+
+.coverage-breakdown--inline {
+  margin-top: 0;
+}
+
+.analysis-table--coverage thead th {
+  padding: 5px 6px;
 }
 
 .coverage-count {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 28px;
-  height: 22px;
+  min-width: 22px;
+  height: 18px;
+  padding: 0 5px;
   border-radius: 999px;
-  font-size: 0.82rem;
+  font-size: 0.76rem;
   font-weight: 700;
   border: 1px solid transparent;
 }
@@ -634,6 +815,15 @@ th {
 
 .analysis-table--defense thead th:first-child {
   z-index: 3;
+}
+
+.analysis-table--defense .type-pill-inline--compact {
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0;
+  padding: 2px 7px;
+  text-transform: none;
+  white-space: nowrap;
 }
 
 .multiplier-badge {
