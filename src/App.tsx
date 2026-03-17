@@ -71,6 +71,14 @@ type RoleCoverage = {
   avgSpeed: number
 }
 
+type Recommendation = {
+  title: string
+  detail: string
+  tone: 'warning' | 'advice' | 'good'
+  sprites?: Array<{ name: string; sprite: string | null }>
+  suggestedTypes?: string[]
+}
+
 const MAX_TEAM_SIZE = 6
 const BASE_STAT_ORDER = [
   'hp',
@@ -129,6 +137,37 @@ function getStatClassName(stat: string): string {
 
 function getStatValue(pokemon: TeamPokemon, statName: string): number {
   return pokemon.stats.find((stat) => stat.name === statName)?.value ?? 0
+}
+
+function getTotalStats(pokemon: TeamPokemon): number {
+  return pokemon.stats.reduce((sum, stat) => sum + stat.value, 0)
+}
+
+function renderWithTypeBadges(text: string) {
+  const titleCaseTypes = POKEMON_TYPES.map(toTitleCase)
+  const typePattern = new RegExp(`\\b(${titleCaseTypes.join('|')})\\b`, 'g')
+  const parts: Array<string | React.ReactElement> = []
+  let lastIndex = 0
+  let match: RegExpExecArray | null
+
+  while ((match = typePattern.exec(text)) !== null) {
+    if (match.index > lastIndex) {
+      parts.push(text.slice(lastIndex, match.index))
+    }
+    const typeName = match[1].toLowerCase()
+    parts.push(
+      <span key={`${typeName}-${match.index}`} className={`type-pill-inline rec-type-pill ${getTypeClassName(typeName)}`}>
+        {match[1]}
+      </span>,
+    )
+    lastIndex = match.index + match[1].length
+  }
+
+  if (lastIndex < text.length) {
+    parts.push(text.slice(lastIndex))
+  }
+
+  return <Fragment>{parts}</Fragment>
 }
 
 function formatMultiplier(multiplier: number): string {
@@ -321,6 +360,7 @@ function App() {
   const [errorMessage, setErrorMessage] = useState('')
   const [typeRelationsMap, setTypeRelationsMap] = useState<Record<string, TypeRelations>>({})
   const [selectedCoverageType, setSelectedCoverageType] = useState<string | null>(null)
+  const [showRecommendations, setShowRecommendations] = useState(false)
 
   useEffect(() => {
     let isMounted = true
@@ -370,6 +410,10 @@ function App() {
       isMounted = false
     }
   }, [])
+
+  useEffect(() => {
+    setShowRecommendations(false)
+  }, [team])
 
   useEffect(() => {
     let isMounted = true
@@ -644,6 +688,144 @@ function App() {
       avgSpeed: Math.round(sumSpeed / team.length),
     }
   }, [team])
+
+  const recommendations = useMemo<Recommendation[]>(() => {
+    if (team.length === 0 || !roleCoverage) {
+      return []
+    }
+
+    const items: Recommendation[] = []
+
+    if (roleCoverage.defensivePokemon === 0) {
+      items.push({
+        title: 'Missing a defensive pivot',
+        detail:
+          'Your team lacks a clearly defensive Pokemon. Add or swap in something with strong HP and bulk so you have a safer switch-in when pressure builds.',
+        tone: 'warning',
+        suggestedTypes: ['steel', 'water', 'rock', 'fairy'],
+      })
+    }
+
+    if (roleCoverage.fastPokemon === 0) {
+      items.push({
+        title: 'No fast speed control',
+        detail:
+          'None of your current Pokemon fall into the fast tier, so many matchups may force you to take hits first. Consider adding a naturally fast cleaner or speed control support.',
+        tone: 'warning',
+        suggestedTypes: ['electric', 'flying', 'psychic'],
+      })
+    }
+
+    if (roleCoverage.specialAttackers === 0) {
+      items.push({
+        title: 'Special offense is missing',
+        detail:
+          'Your team leans away from special attacking pressure. A strong special attacker would make it harder for physical walls to stonewall the whole team.',
+        tone: 'advice',
+        suggestedTypes: ['psychic', 'fire', 'electric', 'water'],
+      })
+    }
+
+    if (roleCoverage.physicalAttackers === 0) {
+      items.push({
+        title: 'Physical offense is missing',
+        detail:
+          'Your team lacks a clear physical attacker. Adding one would diversify your damage output and reduce how easy it is to wall your team on the special side.',
+        tone: 'advice',
+        suggestedTypes: ['fighting', 'ground', 'dragon', 'steel'],
+      })
+    }
+
+    if (duplicateWeaknesses.length > 0) {
+      const worstWeakness = duplicateWeaknesses[0]
+
+      const resistingTypes = POKEMON_TYPES.filter((type) => {
+        const relations = typeRelationsMap[type]
+        return (
+          relations?.halfDamageFrom.has(worstWeakness.type) ||
+          relations?.noDamageFrom.has(worstWeakness.type)
+        )
+      }).slice(0, 4)
+
+      items.push({
+        title: `Overlapping ${toTitleCase(worstWeakness.type)} weakness`,
+        detail: `${worstWeakness.weakNames.join(', ')} all stack a ${toTitleCase(worstWeakness.type)} weakness. That overlap makes the matchup easier to punish.`,
+        tone: 'warning',
+        sprites: worstWeakness.weakNames.slice(0, 4).map((name) => {
+          const pokemon = team.find((p) => toTitleCase(p.name) === name)
+          return { name, sprite: pokemon?.sprite ?? null }
+        }),
+        suggestedTypes: resistingTypes,
+      })
+
+      const duplicateWeakNameCounts = new Map<string, number>()
+      for (const row of duplicateWeaknesses) {
+        for (const name of row.weakNames) {
+          duplicateWeakNameCounts.set(name, (duplicateWeakNameCounts.get(name) ?? 0) + 1)
+        }
+      }
+
+      const replacementCandidate = team
+        .map((pokemon) => ({
+          name: toTitleCase(pokemon.name),
+          sprite: pokemon.sprite,
+          duplicateWeaknessCount: duplicateWeakNameCounts.get(toTitleCase(pokemon.name)) ?? 0,
+          totalStats: getTotalStats(pokemon),
+        }))
+        .sort((a, b) => {
+          if (b.duplicateWeaknessCount !== a.duplicateWeaknessCount) {
+            return b.duplicateWeaknessCount - a.duplicateWeaknessCount
+          }
+
+          return a.totalStats - b.totalStats
+        })[0]
+
+      if (replacementCandidate && replacementCandidate.duplicateWeaknessCount > 0) {
+        items.push({
+          title: `Consider replacing ${replacementCandidate.name}`,
+          detail: `${replacementCandidate.name} contributes to ${replacementCandidate.duplicateWeaknessCount} shared weakness${replacementCandidate.duplicateWeaknessCount > 1 ? 'es' : ''}. Replacing it with something that resists ${toTitleCase(worstWeakness.type)} would reduce team overlap.`,
+          tone: 'advice',
+          sprites: [{ name: replacementCandidate.name, sprite: replacementCandidate.sprite }],
+          suggestedTypes: resistingTypes,
+        })
+      }
+    }
+
+    const lowCoverageTypes = typeCoverageRows
+      .filter((row) => row.attackerCount === 0)
+      .slice(0, 2)
+
+    if (lowCoverageTypes.length > 0) {
+      const coverageSuggested: string[] = []
+      for (const uncoveredRow of lowCoverageTypes) {
+        for (const type of POKEMON_TYPES) {
+          if (typeRelationsMap[type]?.doubleDamageTo.has(uncoveredRow.type) && !coverageSuggested.includes(type)) {
+            coverageSuggested.push(type)
+          }
+        }
+      }
+
+      items.push({
+        title: 'A few typings are hard to pressure back',
+        detail: `You currently have no strong attackers into ${lowCoverageTypes
+          .map((row) => toTitleCase(row.type))
+          .join(' and ')}. Adding coverage for those types would round the team out.`,
+        tone: 'advice',
+        suggestedTypes: coverageSuggested.slice(0, 5),
+      })
+    }
+
+    if (items.length === 0) {
+      items.push({
+        title: 'Balanced first draft',
+        detail:
+          'This team does not trigger any major simple-rule warnings. You have a decent spread of roles and no obvious overlapping weakness problem from these basic checks.',
+        tone: 'good',
+      })
+    }
+
+    return items.slice(0, 5)
+  }, [duplicateWeaknesses, roleCoverage, team, typeCoverageRows, typeRelationsMap])
 
   async function addPokemon(rawName: string) {
     const normalizedName = rawName.trim().toLowerCase()
@@ -1189,6 +1371,70 @@ function App() {
                 </div>
               </article>
             )}
+
+            <article className="analysis-card recommendations-card">
+              <h3>Recommendations</h3>
+              <p className="recommendations-helper">
+                Generate simple team advice based on your current roles, shared weaknesses, and
+                coverage gaps.
+              </p>
+              <div className="recommendations-actions">
+                <button
+                  type="button"
+                  onClick={() => setShowRecommendations(true)}
+                  disabled={team.length === 0 || isLoadingTypeData}
+                >
+                  {showRecommendations ? 'Recommendations Loaded' : 'Show Recommendations'}
+                </button>
+                {!showRecommendations && (
+                  <span className="recommendations-note">
+                    Update your team, then press the button to see advice for that version.
+                  </span>
+                )}
+              </div>
+
+              {showRecommendations && (
+                <div className="recommendations-list">
+                  {recommendations.map((recommendation) => (
+                    <article
+                      key={recommendation.title}
+                      className={`recommendation-item recommendation-item--${recommendation.tone}`}
+                    >
+                      <h4>{recommendation.title}</h4>
+
+                      {recommendation.sprites && recommendation.sprites.length > 0 && (
+                        <div className="rec-sprites">
+                          {recommendation.sprites.map((item) => (
+                            <div key={item.name} className="rec-sprite-item">
+                              {item.sprite && (
+                                <img src={item.sprite} alt={item.name} className="rec-sprite-img" />
+                              )}
+                              <span className="rec-sprite-name">{item.name}</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+
+                      <p>{renderWithTypeBadges(recommendation.detail)}</p>
+
+                      {recommendation.suggestedTypes && recommendation.suggestedTypes.length > 0 && (
+                        <div className="rec-suggested-types">
+                          <span className="rec-suggested-label">Try adding:</span>
+                          {recommendation.suggestedTypes.map((type) => (
+                            <span
+                              key={type}
+                              className={`type-pill-inline ${getTypeClassName(type)}`}
+                            >
+                              {toTitleCase(type)}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                    </article>
+                  ))}
+                </div>
+              )}
+            </article>
           </>
         )}
       </section>

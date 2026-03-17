@@ -869,3 +869,135 @@ th {
   background: #cef2e2;
   border-color: #9edfc4;
 }
+
+.recommendations-card {
+  margin-top: 18px;
+}
+
+.recommendations-helper {
+  margin: 0;
+  color: #535662;
+  font-size: 0.92rem;
+}
+
+.recommendations-actions {
+  margin-top: 14px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+}
+
+.recommendations-note {
+  font-size: 0.85rem;
+  color: #6a7084;
+}
+
+.recommendations-list {
+  margin-top: 14px;
+  display: grid;
+  gap: 12px;
+}
+
+.recommendation-item {
+  border-radius: 12px;
+  border: 1px solid #dbe1f0;
+  padding: 12px 14px;
+  background: #ffffff;
+}
+
+.recommendation-item h4 {
+  margin: 0 0 6px;
+  font-size: 0.95rem;
+  font-weight: 800;
+}
+
+.recommendation-item p {
+  margin: 0;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  color: #3f4559;
+}
+
+.recommendation-item--warning {
+  border-color: #f2c0c0;
+  background: linear-gradient(180deg, #fff7f7 0%, #ffffff 100%);
+}
+
+.recommendation-item--warning h4 {
+  color: #a32020;
+}
+
+.recommendation-item--advice {
+  border-color: #cfe0ff;
+  background: linear-gradient(180deg, #f7faff 0%, #ffffff 100%);
+}
+
+.recommendation-item--advice h4 {
+  color: #3154b6;
+}
+
+.recommendation-item--good {
+  border-color: #c8e7d0;
+  background: linear-gradient(180deg, #f5fcf7 0%, #ffffff 100%);
+}
+
+.recommendation-item--good h4 {
+  color: #2f7d44;
+}
+
+/* ── Recommendation sprites ───────────────────────────────────────────── */
+.rec-sprites {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.rec-sprite-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.rec-sprite-img {
+  width: 64px;
+  height: 64px;
+  object-fit: contain;
+}
+
+.rec-sprite-name {
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: #535662;
+  text-align: center;
+}
+
+/* ── Recommendation suggested types ──────────────────────────────────── */
+.rec-suggested-types {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(0, 0, 0, 0.07);
+}
+
+.rec-suggested-label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #6a7084;
+}
+
+/* Inline type pills used inside recommendation body text */
+.rec-type-pill {
+  font-size: 0.78rem;
+  padding: 1px 7px;
+  vertical-align: middle;
+  position: relative;
+  top: -1px;
+}
