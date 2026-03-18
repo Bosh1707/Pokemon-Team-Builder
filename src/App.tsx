@@ -354,11 +354,13 @@ function App() {
   const [allPokemonList, setAllPokemonList] = useState<PokemonListItem[]>([])
   const [team, setTeam] = useState<TeamPokemon[]>([])
   const [searchTerm, setSearchTerm] = useState('')
+  const [selectedSearchTypes, setSelectedSearchTypes] = useState<string[]>([])
   const [isLoadingList, setIsLoadingList] = useState(true)
   const [isAdding, setIsAdding] = useState(false)
   const [isLoadingTypeData, setIsLoadingTypeData] = useState(true)
   const [errorMessage, setErrorMessage] = useState('')
   const [typeRelationsMap, setTypeRelationsMap] = useState<Record<string, TypeRelations>>({})
+  const [pokemonTypesMap, setPokemonTypesMap] = useState<Record<string, string[]>>({})
   const [selectedCoverageType, setSelectedCoverageType] = useState<string | null>(null)
   const [showRecommendations, setShowRecommendations] = useState(false)
 
@@ -433,6 +435,7 @@ function App() {
         const typePayloads = await Promise.all(typeResponses.map((response) => response.json()))
 
         const nextMap: Record<string, TypeRelations> = {}
+        const nextPokemonTypesMap: Record<string, string[]> = {}
 
         for (let index = 0; index < POKEMON_TYPES.length; index += 1) {
           const typeName = POKEMON_TYPES[index]
@@ -443,6 +446,7 @@ function App() {
               no_damage_from: Array<{ name: string }>
               double_damage_to: Array<{ name: string }>
             }
+            pokemon: Array<{ pokemon: { name: string } }>
           }
 
           nextMap[typeName] = {
@@ -459,10 +463,20 @@ function App() {
               payload.damage_relations.double_damage_to.map((entry) => entry.name),
             ),
           }
+
+          for (const entry of payload.pokemon) {
+            const pokemonName = entry.pokemon.name
+            if (!nextPokemonTypesMap[pokemonName]) {
+              nextPokemonTypesMap[pokemonName] = []
+            }
+
+            nextPokemonTypesMap[pokemonName].push(typeName)
+          }
         }
 
         if (isMounted) {
           setTypeRelationsMap(nextMap)
+          setPokemonTypesMap(nextPokemonTypesMap)
         }
       } catch {
         if (isMounted) {
@@ -486,14 +500,38 @@ function App() {
 
   const filteredPokemon = useMemo(() => {
     const normalized = searchTerm.trim().toLowerCase()
-    if (!normalized) {
-      return allPokemonList.slice(0, 20)
-    }
-
     return allPokemonList
-      .filter((pokemon) => pokemon.name.includes(normalized))
+      .filter((pokemon) => {
+        const matchesName = !normalized || pokemon.name.includes(normalized)
+        if (!matchesName) {
+          return false
+        }
+
+        if (selectedSearchTypes.length === 0) {
+          return true
+        }
+
+        const pokemonTypes = pokemonTypesMap[pokemon.name] ?? []
+        return selectedSearchTypes.every((type) => pokemonTypes.includes(type))
+      })
       .slice(0, 20)
-  }, [allPokemonList, searchTerm])
+  }, [allPokemonList, pokemonTypesMap, searchTerm, selectedSearchTypes])
+
+  function toggleSearchType(type: string) {
+    setSelectedSearchTypes((current) => {
+      if (current.includes(type)) {
+        return current.filter((value) => value !== type)
+      }
+
+      if (current.length >= 2) {
+        return current
+      }
+
+      return [...current, type]
+    })
+  }
+
+  const canUseTypeFilter = !isLoadingTypeData && Object.keys(pokemonTypesMap).length > 0
 
   const typeCoverageRows = useMemo<CoverageRow[]>(() => {
     if (team.length === 0) {
@@ -898,7 +936,9 @@ function App() {
       <section className="builder-panel" aria-labelledby="builder-title">
         <div>
           <h2 id="builder-title">Add Pokemon</h2>
-          <p className="helper-text">Search by name, click a result, then add it to your team.</p>
+          <p className="helper-text">
+            Search by name or filter by up to two types, then click a result to add it.
+          </p>
         </div>
 
         <div className="controls-grid">
@@ -911,6 +951,69 @@ function App() {
               placeholder="e.g. pikachu"
               disabled={isLoadingList || isAdding}
             />
+          </label>
+
+          <label>
+            Filter by Type (up to 2)
+            <div className="type-filter-field">
+              <details className={`type-dropdown ${!canUseTypeFilter ? 'is-disabled' : ''}`}>
+                <summary
+                  aria-disabled={!canUseTypeFilter}
+                  onClick={(event) => {
+                    if (!canUseTypeFilter) {
+                      event.preventDefault()
+                    }
+                  }}
+                >
+                  {selectedSearchTypes.length > 0 ? (
+                    <span className="type-dropdown-value">
+                      {selectedSearchTypes.map((type) => (
+                        <span key={type} className={`type-pill-inline ${getTypeClassName(type)}`}>
+                          {toTitleCase(type)}
+                        </span>
+                      ))}
+                    </span>
+                  ) : (
+                    <span className="type-dropdown-placeholder">
+                      {canUseTypeFilter ? 'Select type badges' : 'Loading type options...'}
+                    </span>
+                  )}
+                </summary>
+
+                {canUseTypeFilter && (
+                  <div className="type-dropdown-menu">
+                    {POKEMON_TYPES.map((type) => {
+                      const isSelected = selectedSearchTypes.includes(type)
+                      const isLocked = !isSelected && selectedSearchTypes.length >= 2
+
+                      return (
+                        <button
+                          key={type}
+                          type="button"
+                          className={`type-dropdown-option ${isSelected ? 'is-selected' : ''}`}
+                          onClick={() => toggleSearchType(type)}
+                          disabled={isLocked}
+                          aria-pressed={isSelected}
+                        >
+                          <span className={`type-pill-inline ${getTypeClassName(type)}`}>
+                            {toTitleCase(type)}
+                          </span>
+                        </button>
+                      )
+                    })}
+                  </div>
+                )}
+              </details>
+
+              <button
+                type="button"
+                className="clear-type-filter"
+                onClick={() => setSelectedSearchTypes([])}
+                disabled={selectedSearchTypes.length === 0}
+              >
+                Clear
+              </button>
+            </div>
           </label>
         </div>
 
@@ -926,8 +1029,22 @@ function App() {
               disabled={isAdding || team.length >= MAX_TEAM_SIZE}
             >
               <img src={pokemon.sprite} alt="" aria-hidden="true" />
-              <span className="search-result-name">
-                #{pokemon.id.toString().padStart(4, '0')} {toTitleCase(pokemon.name)}
+              <span className="search-result-main">
+                <span className="search-result-name">
+                  #{pokemon.id.toString().padStart(4, '0')} {toTitleCase(pokemon.name)}
+                </span>
+                {(pokemonTypesMap[pokemon.name] ?? []).length > 0 && (
+                  <span className="search-result-types">
+                    {(pokemonTypesMap[pokemon.name] ?? []).map((type) => (
+                      <span
+                        key={`${pokemon.name}-${type}`}
+                        className={`type-pill-inline type-pill-inline--compact ${getTypeClassName(type)}`}
+                      >
+                        {toTitleCase(type)}
+                      </span>
+                    ))}
+                  </span>
+                )}
               </span>
             </button>
           ))}

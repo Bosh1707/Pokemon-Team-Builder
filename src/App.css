@@ -97,6 +97,106 @@ input:focus {
   align-items: center;
 }
 
+.type-filter-field {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.type-dropdown {
+  position: relative;
+  flex: 1;
+}
+
+.type-dropdown summary {
+  list-style: none;
+  min-height: 42px;
+  border: 1px solid #c4c8d6;
+  border-radius: 10px;
+  padding: 8px 10px;
+  background: #ffffff;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+}
+
+.type-dropdown summary::-webkit-details-marker {
+  display: none;
+}
+
+.type-dropdown[open] summary {
+  border-color: #6b6ff8;
+  box-shadow: 0 0 0 2px rgba(107, 111, 248, 0.2);
+}
+
+.type-dropdown.is-disabled summary {
+  background: #f7f8fd;
+  color: #7b8094;
+  cursor: not-allowed;
+}
+
+.type-dropdown-placeholder {
+  font-size: 0.9rem;
+  color: #6b7085;
+}
+
+.type-dropdown-value {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.type-dropdown-menu {
+  position: absolute;
+  z-index: 10;
+  left: 0;
+  right: 0;
+  margin-top: 6px;
+  border: 1px solid #d0d6e7;
+  border-radius: 10px;
+  background: #ffffff;
+  box-shadow: 0 10px 30px rgba(24, 32, 70, 0.14);
+  padding: 10px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.type-dropdown-option {
+  border: none;
+  background: transparent;
+  padding: 0;
+  text-align: left;
+  justify-self: start;
+}
+
+.type-dropdown-option .type-pill-inline {
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.12) inset;
+  transition: transform 0.15s, box-shadow 0.15s;
+}
+
+.type-dropdown-option:hover .type-pill-inline,
+.type-dropdown-option.is-selected .type-pill-inline {
+  transform: translateY(-1px);
+  box-shadow: 0 0 0 2px rgba(75, 87, 240, 0.22);
+}
+
+.type-dropdown-option:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.clear-type-filter {
+  background: #eef0f8;
+  color: #42495d;
+  padding: 9px 12px;
+  border: 1px solid #d5daea;
+}
+
+.clear-type-filter:hover:not(:disabled) {
+  background: #e1e5f2;
+}
+
 .search-results {
   margin-top: 14px;
   max-height: 260px;
@@ -142,6 +242,24 @@ input:focus {
 
 .search-result-name {
   font-weight: 600;
+}
+
+.search-result-main {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.search-result-types {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.search-result-types .type-pill-inline {
+  font-size: 0.7rem;
+  padding: 1px 7px;
 }
 
 button {
@@ -491,6 +609,11 @@ th {
   text-shadow: 0 1px 0 rgba(0, 0, 0, 0.2);
 }
 
+.type-pill-inline--compact {
+  font-size: 0.74rem;
+  padding: 2px 7px;
+}
+
 .type-pill-inline.type-normal { background: #a8a77a; }
 .type-pill-inline.type-fire { background: #ee8130; }
 .type-pill-inline.type-water { background: #6390f0; }
@@ -652,6 +775,17 @@ th {
   font-weight: 600;
   color: #535662;
   text-align: center;
+}
+
+@media (max-width: 640px) {
+  .type-filter-field {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .type-dropdown-menu {
+    grid-template-columns: repeat(1, minmax(0, 1fr));
+  }
 }
 
 /* ── Analysis tables (coverage + defensive multipliers) ──────────────── */
