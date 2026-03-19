@@ -3,16 +3,47 @@
 ## Overview
 Pokemon Team Builder is a React + TypeScript web application that helps users build a team of up to 6 Pokemon and evaluate team quality using data from PokeAPI.
 
-Core capabilities:
-- Search Pokemon by name
-- Filter search results by up to 2 types
-- Add/remove Pokemon from the team
-- View Pokemon base stats in bar or radar chart format
-- Analyze team defensive and offensive type coverage
-- Show recommendation cards based on team weaknesses and role balance
-- Persist team state locally using `localStorage`
+## Table of Contents
+ 
+- [Demo](#demo)
+- [Overview](#overview)
+- [Approach and Architecture](#approach-and-architecture)
+- [Tech Stack](#tech-stack)
+- [Setup Instructions](#setup-instructions)
+- [Testing Instructions](#testing-instructions)
+- [Project Structure](#project-structure)
+- [Known Limitations & Future Improvements](#known-limitations--future-improvements)
+- [Assumptions](#assumptions)
+ 
+
+
+## Demo
+ 
+[App demo](./docs/demo.mp4)
+ 
+**Key screens:**
+- **Search panel** — filter by name and up to 2 types, with a loading skeleton while the Pokémon index fetches
+- **Team grid** — per-Pokémon stat bars or radar chart, switchable per card
+- **Analysis panel** — type coverage table, per-Pokémon defensive multiplier matrix, role/speed balance bars, and recommendation cards
+- **localStorage persistence** — team survives a page refresh
+ 
 
 ## Approach and Architecture
+
+### Tech Stack
+ 
+| Tool | Version | Purpose |
+|---|---|---|
+| [React](https://react.dev/) | 18 | UI framework |
+| [TypeScript](https://www.typescriptlang.org/) | 5.6 | Type safety |
+| [Vite](https://vitejs.dev/) | 6 | Build tool and dev server |
+| [Vitest](https://vitest.dev/) | 2 | Unit test runner |
+| [Testing Library](https://testing-library.com/) | 16 | React component testing utilities |
+| [Tailwind CSS](https://tailwindcss.com/) | 4 | Base CSS reset |
+| [PokéAPI](https://pokeapi.co/) | v2 | Pokémon and type data |
+ 
+---
+
 ### Design approach
 - Keep the UI interactive and immediate, with fast in-browser filtering and memoized computations.
 - Separate data transformation logic from rendering where possible.
@@ -121,3 +152,11 @@ The recommendation engine is designed around the philosophy of synergistic roste
 
 3. **Statistical Normalization:**
    By evaluating the team's average stats against a baseline expected average, the system identifies distinct statistical deficits. For instance, if the team possesses high attack but heavily lacks speed, the recommendation heuristic will weight faster Pokemon more heavily to prevent the team from being consistently out-paced. 
+
+### Potential future improvements
+ 
+- Add `localStorage` cache for the Pokémon index and type-relation data to reduce load time on repeat visits
+- Introduce move-set analysis to complement the stat-based role classification
+- Add an offline fallback dataset so the app works without a network connection
+- Expand tests to cover component interactions with React Testing Library
+- Split heavy analysis logic out of `App.tsx` into dedicated custom hooks (`useTypeAnalysis`, `useRecommendations`)
