@@ -1,5 +1,14 @@
 import { Fragment, useEffect, useMemo, useState } from 'react'
 import './App.css'
+import {
+  toTitleCase,
+  getPokemonIdFromUrl,
+  getPokemonSpriteById,
+  getStatClassName,
+  getTypeClassName,
+  formatMultiplier,
+} from './utils/formatters'
+import { getMultiplierClass, getCoverageCountClass } from './utils/multipliers'
 
 type PokemonListResponse = {
   results: Array<{ name: string; url: string }>
@@ -112,31 +121,6 @@ const POKEMON_TYPES = [
   'fairy',
 ]
 
-function toTitleCase(value: string): string {
-  return value
-    .split('-')
-    .map((segment) => segment.charAt(0).toUpperCase() + segment.slice(1))
-    .join(' ')
-}
-
-function getPokemonIdFromUrl(url: string): number {
-  const segments = url.split('/').filter(Boolean)
-  const idSegment = segments[segments.length - 1]
-  return Number(idSegment)
-}
-
-function getPokemonSpriteById(id: number): string {
-  return `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${id}.png`
-}
-
-function getTypeClassName(type: string): string {
-  return `type-${type.toLowerCase()}`
-}
-
-function getStatClassName(stat: string): string {
-  return `stat-${stat.toLowerCase()}`
-}
-
 function getStatValue(pokemon: TeamPokemon, statName: string): number {
   return pokemon.stats.find((stat) => stat.name === statName)?.value ?? 0
 }
@@ -172,62 +156,18 @@ function renderWithTypeBadges(text: string) {
   return <Fragment>{parts}</Fragment>
 }
 
-function formatMultiplier(multiplier: number): string {
-  if (multiplier === 0) {
-    return '0x'
-  }
+const RADAR_STAT_MAX = 180
 
-  const rounded = Math.round(multiplier * 100) / 100
-  return `${rounded}x`
-}
+const RADAR_STATS: Array<{ key: string; label: string; color: string }> = [
+  { key: 'hp', label: 'HP', color: '#4caf50' },
+  { key: 'attack', label: 'Atk', color: '#e65100' },
+  { key: 'defense', label: 'Def', color: '#1e88e5' },
+  { key: 'special-attack', label: 'SpA', color: '#d81b60' },
+  { key: 'special-defense', label: 'SpD', color: '#00897b' },
+  { key: 'speed', label: 'Spe', color: '#8e24aa' },
+]
 
-function getMultiplierClass(multiplier: number): string {
-  if (multiplier === 0) {
-    return 'multiplier-0'
-  }
-
-  if (multiplier >= 4) {
-    return 'multiplier-4'
-  }
-
-  if (multiplier >= 2) {
-    return 'multiplier-2'
-  }
-
-  if (multiplier <= 0.25) {
-    return 'multiplier-025'
-  }
-
-  if (multiplier <= 0.5) {
-    return 'multiplier-05'
-  }
-
-  return 'multiplier-1'
-}
-
-function getCoverageCountClass(
-  kind: 'weak' | 'resist' | 'immune' | 'attack',
-  value: number,
-): string {
-  if (value === 0) {
-    return 'coverage-count coverage-count--none'
-  }
-
-  return `coverage-count coverage-count--${kind}`
-}
-
-  const RADAR_STAT_MAX = 180
-
-  const RADAR_STATS: Array<{ key: string; label: string; color: string }> = [
-    { key: 'hp', label: 'HP', color: '#4caf50' },
-    { key: 'attack', label: 'Atk', color: '#e65100' },
-    { key: 'defense', label: 'Def', color: '#1e88e5' },
-    { key: 'special-attack', label: 'SpA', color: '#d81b60' },
-    { key: 'special-defense', label: 'SpD', color: '#00897b' },
-    { key: 'speed', label: 'Spe', color: '#8e24aa' },
-  ]
-
-  function RadarChart({
+function RadarChart({
     values,
     size = 260,
     maxStat = RADAR_STAT_MAX,
