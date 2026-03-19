@@ -1125,7 +1125,7 @@ function App() {
             value={pokemonStatsView}
             onChange={setPokemonStatsView}
             label="Pokemon base stats chart view"
-                    {team.length > 0 && (
+                    {...team.length > 0 && (
                       <button
                         type="button"
                         className="clear-team-button"
