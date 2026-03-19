@@ -19,12 +19,15 @@ Pokemon Team Builder is a React + TypeScript web application that helps users bu
 
 ## Demo
  
-[App demo](./docs/demo.mp4)
- 
 **Key screens:**
 - **Search panel** — filter by name and up to 2 types, with a loading skeleton while the Pokémon index fetches
+![Search Panel](./docs/addpokemon.png)
 - **Team grid** — per-Pokémon stat bars or radar chart, switchable per card
+![Team](./docs/team.png)
 - **Analysis panel** — type coverage table, per-Pokémon defensive multiplier matrix, role/speed balance bars, and recommendation cards
+![Team Analysis](./docs/teamAnalysis.png)
+- **Recommendation System** — Recommendations are given based on the current team user has selected
+![Recommendation](./docs/recommendation.png)
 - **localStorage persistence** — team survives a page refresh
  
 
