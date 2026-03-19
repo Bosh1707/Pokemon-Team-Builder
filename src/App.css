@@ -406,6 +406,23 @@ button:disabled {
 
 .remove-button:hover {
   background: #d94747;
+
+  .clear-team-button {
+    background: transparent;
+    border: 1.5px solid #8b5cf6;
+    color: #8b5cf6;
+    padding: 6px 14px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+  }
+
+  .clear-team-button:hover {
+    background: #8b5cf6;
+    color: #ffffff;
+  }
   color: #ffffff;
 }
 
