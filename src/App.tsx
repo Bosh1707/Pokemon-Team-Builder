@@ -79,6 +79,8 @@ type Recommendation = {
   suggestedTypes?: string[]
 }
 
+type StatChartView = 'bar' | 'spider'
+
 const MAX_TEAM_SIZE = 6
 const BASE_STAT_ORDER = [
   'hp',
@@ -225,14 +227,23 @@ function getCoverageCountClass(
     { key: 'speed', label: 'Spe', color: '#8e24aa' },
   ]
 
-  function RadarChart({ values }: { values: Record<string, number> }) {
-    const size = 260
+  function RadarChart({
+    values,
+    size = 260,
+    maxStat = RADAR_STAT_MAX,
+  }: {
+    values: Record<string, number>
+    size?: number
+    maxStat?: number
+  }) {
     const cx = size / 2
     const cy = size / 2
-    const r = 88
+    const r = size * 0.34
     const levels = 4
     const n = RADAR_STATS.length
-    const labelR = r + 24
+    const labelR = r + size * 0.09
+    const fontSize = Math.max(10, Math.round(size * 0.046))
+    const pointRadius = Math.max(3, Math.round(size * 0.016))
     const angle = (i: number) => (2 * Math.PI * i) / n - Math.PI / 2
     const pt = (i: number, radius: number) => ({
       x: cx + radius * Math.cos(angle(i)),
@@ -247,7 +258,7 @@ function getCoverageCountClass(
     })
 
     const dataPts = RADAR_STATS.map((stat, i) => {
-      const norm = Math.min((values[stat.key] ?? 0) / RADAR_STAT_MAX, 1)
+      const norm = Math.min((values[stat.key] ?? 0) / maxStat, 1)
       return pt(i, norm * r)
     })
     const dataPolygon = dataPts.map((p) => `${p.x.toFixed(2)},${p.y.toFixed(2)}`).join(' ')
@@ -297,7 +308,7 @@ function getCoverageCountClass(
             key={i}
             cx={p.x.toFixed(2)}
             cy={p.y.toFixed(2)}
-            r="4"
+            r={pointRadius.toString()}
             fill="#4b57f0"
             stroke="#ffffff"
             strokeWidth="1.5"
@@ -313,7 +324,7 @@ function getCoverageCountClass(
               y={lp.y.toFixed(2)}
               textAnchor="middle"
               dominantBaseline="middle"
-              fontSize="12"
+              fontSize={fontSize.toString()}
               fontWeight="700"
               fill={stat.color}
               style={{ cursor: 'help' }}
@@ -324,6 +335,69 @@ function getCoverageCountClass(
           )
         })}
       </svg>
+    )
+  }
+
+  function StatBars({
+    values,
+    maxValue,
+  }: {
+    values: Record<string, number>
+    maxValue: number
+  }) {
+    return (
+      <div className="stats-bar-chart" role="img" aria-label="Pokemon stat bar chart">
+        {RADAR_STATS.map((stat) => {
+          const value = values[stat.key] ?? 0
+          const percent = Math.round((Math.min(value, maxValue) / maxValue) * 100)
+
+          return (
+            <div key={stat.key} className="stats-bar-row">
+              <span className="stats-bar-name" style={{ color: stat.color }}>
+                {stat.label}
+              </span>
+              <div className="stats-bar-track">
+                <div
+                  className="stats-bar-fill"
+                  style={{ width: `${percent}%`, background: stat.color }}
+                />
+              </div>
+              <span className="stats-bar-value">{value}</span>
+            </div>
+          )
+        })}
+      </div>
+    )
+  }
+
+  function ChartToggle({
+    value,
+    onChange,
+    label,
+  }: {
+    value: StatChartView
+    onChange: (next: StatChartView) => void
+    label: string
+  }) {
+    return (
+      <div className="chart-toggle" role="group" aria-label={label}>
+        <button
+          type="button"
+          className={`chart-toggle-button ${value === 'bar' ? 'is-active' : ''}`}
+          onClick={() => onChange('bar')}
+          aria-pressed={value === 'bar'}
+        >
+          Bar Graph
+        </button>
+        <button
+          type="button"
+          className={`chart-toggle-button ${value === 'spider' ? 'is-active' : ''}`}
+          onClick={() => onChange('spider')}
+          aria-pressed={value === 'spider'}
+        >
+          Spider Diagram
+        </button>
+      </div>
     )
   }
 
@@ -363,6 +437,8 @@ function App() {
   const [pokemonTypesMap, setPokemonTypesMap] = useState<Record<string, string[]>>({})
   const [selectedCoverageType, setSelectedCoverageType] = useState<string | null>(null)
   const [showRecommendations, setShowRecommendations] = useState(false)
+  const [pokemonStatsView, setPokemonStatsView] = useState<StatChartView>('bar')
+  const [averageStatsView, setAverageStatsView] = useState<StatChartView>('spider')
 
   useEffect(() => {
     let isMounted = true
@@ -727,6 +803,21 @@ function App() {
     }
   }, [team])
 
+  const averageStatValues = useMemo<Record<string, number> | null>(() => {
+    if (!roleCoverage) {
+      return null
+    }
+
+    return {
+      hp: roleCoverage.avgHp,
+      attack: roleCoverage.avgAttack,
+      defense: roleCoverage.avgDefense,
+      'special-attack': roleCoverage.avgSpAttack,
+      'special-defense': roleCoverage.avgSpDefense,
+      speed: roleCoverage.avgSpeed,
+    }
+  }, [roleCoverage])
+
   const recommendations = useMemo<Recommendation[]>(() => {
     if (team.length === 0 || !roleCoverage) {
       return []
@@ -1074,7 +1165,14 @@ function App() {
       </section>
 
       <section className="team-panel" aria-labelledby="team-title">
-        <h2 id="team-title">Current Team</h2>
+        <div className="section-heading-row">
+          <h2 id="team-title">Current Team</h2>
+          <ChartToggle
+            value={pokemonStatsView}
+            onChange={setPokemonStatsView}
+            label="Pokemon base stats chart view"
+          />
+        </div>
 
         {team.length === 0 ? (
           <p className="empty-state">No Pokemon added yet. Start by searching above.</p>
@@ -1129,31 +1227,47 @@ function App() {
 
                 <div className="meta-block">
                   <h4>Base Stats</h4>
-                  <table className="stat-table">
-                    <tbody>
-                      {pokemon.stats.map((stat) => (
-                        <tr key={stat.name} className={getStatClassName(stat.name)}>
-                          <th>{toTitleCase(stat.name)}</th>
-                          <td className="stat-value">{stat.value}</td>
-                          <td className="stat-bar-cell">
-                            <div className="stat-bar">
-                              <div
-                                className="stat-bar-fill"
-                                style={{ width: `${Math.round((stat.value / 255) * 100)}%` }}
-                              />
-                            </div>
+                  {pokemonStatsView === 'bar' ? (
+                    <table className="stat-table">
+                      <tbody>
+                        {pokemon.stats.map((stat) => (
+                          <tr key={stat.name} className={getStatClassName(stat.name)}>
+                            <th>{toTitleCase(stat.name)}</th>
+                            <td className="stat-value">{stat.value}</td>
+                            <td className="stat-bar-cell">
+                              <div className="stat-bar">
+                                <div
+                                  className="stat-bar-fill"
+                                  style={{ width: `${Math.round((stat.value / 255) * 100)}%` }}
+                                />
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                        <tr className="stat-total">
+                          <th>Total</th>
+                          <td className="stat-value">
+                            {pokemon.stats.reduce((sum, s) => sum + s.value, 0)}
                           </td>
+                          <td className="stat-bar-cell" />
                         </tr>
-                      ))}
-                      <tr className="stat-total">
-                        <th>Total</th>
-                        <td className="stat-value">
-                          {pokemon.stats.reduce((sum, s) => sum + s.value, 0)}
-                        </td>
-                        <td className="stat-bar-cell" />
-                      </tr>
-                    </tbody>
-                  </table>
+                      </tbody>
+                    </table>
+                  ) : (
+                    <div className="pokemon-stats-visual">
+                      <RadarChart
+                        values={pokemon.stats.reduce<Record<string, number>>((acc, stat) => {
+                          acc[stat.name] = stat.value
+                          return acc
+                        }, {})}
+                        size={220}
+                        maxStat={255}
+                      />
+                      <p className="radar-label">
+                        Base Stat Shape (Total {pokemon.stats.reduce((sum, s) => sum + s.value, 0)})
+                      </p>
+                    </div>
+                  )}
                 </div>
               </article>
             ))}
@@ -1242,7 +1356,14 @@ function App() {
               </article>
 
               <article className="analysis-card">
-                <h3>Role & Stat Balance</h3>
+                <div className="analysis-card-heading-row">
+                  <h3>Role &amp; Stat Balance</h3>
+                  <ChartToggle
+                    value={averageStatsView}
+                    onChange={setAverageStatsView}
+                    label="Team average stats chart view"
+                  />
+                </div>
                 {roleCoverage && (
                   <div className="role-card-body">
                     <div className="role-details">
@@ -1297,19 +1418,21 @@ function App() {
                       </div>
                     </div>
 
-                    <div className="radar-container">
-                      <RadarChart
-                        values={{
-                          hp: roleCoverage.avgHp,
-                          attack: roleCoverage.avgAttack,
-                          defense: roleCoverage.avgDefense,
-                          'special-attack': roleCoverage.avgSpAttack,
-                          'special-defense': roleCoverage.avgSpDefense,
-                          speed: roleCoverage.avgSpeed,
-                        }}
-                      />
-                      <p className="radar-label">Team Average Stats</p>
-                    </div>
+                    {averageStatValues && (
+                      <div className="radar-container">
+                        {averageStatsView === 'bar' ? (
+                          <>
+                            <StatBars values={averageStatValues} maxValue={180} />
+                            <p className="radar-label">Team Average Stats (Bar Graph)</p>
+                          </>
+                        ) : (
+                          <>
+                            <RadarChart values={averageStatValues} />
+                            <p className="radar-label">Team Average Stats (Spider Diagram)</p>
+                          </>
+                        )}
+                      </div>
+                    )}
                   </div>
                 )}
               </article>
