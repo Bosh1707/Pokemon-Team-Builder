@@ -9,6 +9,7 @@ import {
   formatMultiplier,
 } from './utils/formatters'
 import { getMultiplierClass, getCoverageCountClass } from './utils/multipliers'
+import { saveTeamToStorage, loadTeamFromStorage, clearTeamFromStorage } from './utils/localStorage'
 
 type PokemonListResponse = {
   results: Array<{ name: string; url: string }>
@@ -428,6 +429,19 @@ function App() {
       isMounted = false
     }
   }, [])
+
+  // Load team from localStorage on mount
+  useEffect(() => {
+    const savedTeam = loadTeamFromStorage()
+    if (savedTeam.length > 0) {
+      setTeam(savedTeam)
+    }
+  }, [])
+
+  // Save team to localStorage whenever it changes
+  useEffect(() => {
+    saveTeamToStorage(team)
+  }, [team])
 
   useEffect(() => {
     setShowRecommendations(false)
@@ -1111,6 +1125,18 @@ function App() {
             value={pokemonStatsView}
             onChange={setPokemonStatsView}
             label="Pokemon base stats chart view"
+                    {team.length > 0 && (
+                      <button
+                        type="button"
+                        className="clear-team-button"
+                        onClick={() => {
+                          setTeam([])
+                          clearTeamFromStorage()
+                        }}
+                      >
+                        Clear Team
+                      </button>
+                    )}
           />
         </div>
 
